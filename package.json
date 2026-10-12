@@ -1,0 +1,29 @@
+{
+  "name": "sports-e-auction-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env src/server.ts",
+    "start": "node --env-file=.env dist/server.js",
+    "build": "tsc",
+    "db:migrate": "tsx --env-file=.env src/db/migrate.ts",
+    "db:seed": "tsx --env-file=.env src/db/seed.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hapi/boom": "10.0.1",
+    "@hapi/hapi": "21.3.12",
+    "@hapi/jwt": "3.2.0",
+    "bcryptjs": "2.4.3",
+    "joi": "17.13.3",
+    "pg": "8.13.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "2.4.6",
+    "@types/node": "22.9.0",
+    "@types/pg": "8.11.10",
+    "tsx": "4.19.2",
+    "typescript": "5.6.3"
+  }
+}
