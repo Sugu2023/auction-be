@@ -24,6 +24,8 @@ const auctionPayload = Joi.object({
   totalTeams: Joi.number().integer().min(1).max(20).required(),
   basePurse: Joi.number().integer().min(1).max(1_000_000_000).required(),
   bidIncrement: Joi.number().integer().min(1).max(1_000_000).required(),
+  // Optional PNG or JPEG logo as a base64 data URL. Omit it to keep the current logo.
+  logo: Joi.string().max(8_000_000).pattern(/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/).allow('', null),
 });
 
 const teamPayload = Joi.object({
@@ -74,7 +76,7 @@ export const auctionRoutes: ServerRoute[] = [
       if (credentials.role === 'admin') return listAuctions();
       if (!credentials.teamId) return [];
       const { rows } = await pool.query(
-        `SELECT a.id, a.name, a.total_teams, a.base_purse, a.bid_increment
+        `SELECT a.id, a.name, a.total_teams, a.base_purse, a.bid_increment, a.logo
          FROM auctions a JOIN teams t ON t.auction_id = a.id WHERE t.id = $1`,
         [credentials.teamId],
       );
@@ -84,6 +86,7 @@ export const auctionRoutes: ServerRoute[] = [
         totalTeams: r.total_teams,
         basePurse: r.base_purse,
         bidIncrement: r.bid_increment,
+        logo: r.logo,
       }));
     },
   },
@@ -98,14 +101,15 @@ export const auctionRoutes: ServerRoute[] = [
         totalTeams: number;
         basePurse: number;
         bidIncrement: number;
+        logo?: string | null;
       };
       const id = `auction-${randomUUID()}`;
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         await client.query(
-          'INSERT INTO auctions (id, name, total_teams, base_purse, bid_increment) VALUES ($1, $2, $3, $4, $5)',
-          [id, body.name, body.totalTeams, body.basePurse, body.bidIncrement],
+          'INSERT INTO auctions (id, name, total_teams, base_purse, bid_increment, logo) VALUES ($1, $2, $3, $4, $5, $6)',
+          [id, body.name, body.totalTeams, body.basePurse, body.bidIncrement, body.logo || null],
         );
         await client.query('INSERT INTO auction_live (auction_id) VALUES ($1)', [id]);
         await client.query('COMMIT');
@@ -142,6 +146,7 @@ export const auctionRoutes: ServerRoute[] = [
         totalTeams: number;
         basePurse: number;
         bidIncrement: number;
+        logo?: string | null;
       };
       const { rows } = await pool.query<{ count: string }>(
         'SELECT COUNT(*) AS count FROM teams WHERE auction_id = $1',
@@ -152,8 +157,9 @@ export const auctionRoutes: ServerRoute[] = [
       }
 
       await pool.query(
-        `UPDATE auctions SET name = $2, total_teams = $3, base_purse = $4, bid_increment = $5 WHERE id = $1`,
-        [auctionId, body.name, body.totalTeams, body.basePurse, body.bidIncrement],
+        `UPDATE auctions SET name = $2, total_teams = $3, base_purse = $4, bid_increment = $5,
+           logo = COALESCE($6, logo) WHERE id = $1`,
+        [auctionId, body.name, body.totalTeams, body.basePurse, body.bidIncrement, body.logo || null],
       );
       return getAuctionState(auctionId);
     },

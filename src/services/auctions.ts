@@ -11,6 +11,7 @@ export interface AuctionConfig {
   totalTeams: number;
   basePurse: number;
   bidIncrement: number;
+  logo: string | null;
 }
 
 export interface TeamDto {
@@ -61,6 +62,7 @@ interface AuctionRow {
   total_teams: number;
   base_purse: number;
   bid_increment: number;
+  logo: string | null;
 }
 
 interface TeamRow {
@@ -101,6 +103,7 @@ const toConfig = (r: AuctionRow): AuctionConfig => ({
   totalTeams: r.total_teams,
   basePurse: r.base_purse,
   bidIncrement: r.bid_increment,
+  logo: r.logo,
 });
 
 const toTeam = (r: TeamRow): TeamDto => ({ ...r });
@@ -127,7 +130,7 @@ const toLive = (r: LiveRow): LiveDto => ({
 
 export async function findAuction(id: string): Promise<AuctionConfig> {
   const { rows } = await pool.query<AuctionRow>(
-    'SELECT id, name, total_teams, base_purse, bid_increment FROM auctions WHERE id = $1',
+    'SELECT id, name, total_teams, base_purse, bid_increment, logo FROM auctions WHERE id = $1',
     [id],
   );
   if (!rows[0]) throw Boom.notFound('Auction not found');
@@ -136,7 +139,7 @@ export async function findAuction(id: string): Promise<AuctionConfig> {
 
 export async function listAuctions(): Promise<AuctionConfig[]> {
   const { rows } = await pool.query<AuctionRow>(
-    'SELECT id, name, total_teams, base_purse, bid_increment FROM auctions ORDER BY created_at, name',
+    'SELECT id, name, total_teams, base_purse, bid_increment, logo FROM auctions ORDER BY created_at, name',
   );
   return rows.map(toConfig);
 }
